@@ -1,0 +1,19 @@
+# --- Core web framework ---
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+gunicorn==23.0.0
+
+# --- ORM / DB connectivity (async) ---
+sqlalchemy[asyncio]==2.0.35
+asyncmy==0.2.9  # driver async MySQL performant
+cryptography>=42.0.0
+
+# --- Config & environment ---
+python-dotenv==1.0.1
+
+# --- Optional utilities (logging, parsing, etc.) ---
+pydantic==2.9.2
+pydantic-settings==2.3.4
+
+passlib[bcrypt]
+pyjwt
