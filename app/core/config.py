@@ -26,5 +26,5 @@ class Settings:
     API_TOKEN_FRONTEND = os.getenv("API_TOKEN_FRONTEND", "")
     API_TOKEN_ADMIN = os.getenv("API_TOKEN_ADMIN", "")
     API_TOKEN_MOBILE = os.getenv("API_TOKEN_MOBILE", "")
-
+    SECRET_KEY = os.getenv("SECRET_KEY", "")
 settings = Settings()
