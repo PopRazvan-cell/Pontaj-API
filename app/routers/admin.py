@@ -5,7 +5,7 @@ from ..db import engine
 from ..core.config import settings
 from ..core.security import make_bearer_verifier
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 import jwt
 import time
 
@@ -26,9 +26,9 @@ class LoginRequest(BaseModel):
 @router.post("/login")
 async def admin_login(body: LoginRequest):
     """
-    Login endpoint:
-    - Validates admin username/password from MySQL
-    - Returns a JWT token and username
+    Punct final de autentificare:
+    -Validează numele de utilizator/parola admin din MySQL
+    -Returnează un token JWT și numele de utilizator
     """
     q = text("""
         SELECT Password, Email, Name FROM profesorii WHERE Email = :u LIMIT 1;
@@ -70,9 +70,9 @@ http_bearer_scheme = HTTPBearer()
 # --- TOKEN VERIFIER ---
 def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)):
     """
-    Extract and verify the JWT token using the HTTPBearer scheme.
-    'creds.credentials' will contain the raw token string.
-    'creds.scheme' will be "Bearer".
+    Extrage și verifică tokenul JWT folosind schema HTTPBearer.
+    'creds.credentials' va conține șirul tokenului brut.
+    'creds.scheme' va fi "Bearer".
     """
     # 1. Get the token directly from the 'creds' object
     token = creds.credentials 
@@ -90,8 +90,8 @@ def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_s
 @router.get("/profesori")
 async def get_all_admins(payload: dict = Depends(verify_jwt_token)):
     """
-    Returns all admin users with full info (excluding password_hash).
-    Requires a valid JWT token in Authorization header.
+    Returnează toți utilizatorii admin cu informații complete (excluzând password_hash).
+    Necesită un token JWT valid în antetul Authorization.
     """
     q = text("""
         SELECT Email, Name FROM profesorii
@@ -110,12 +110,70 @@ async def get_all_admins(payload: dict = Depends(verify_jwt_token)):
 
 verify_admin = make_bearer_verifier(settings.API_TOKEN_ADMIN)
 
-@router.get("/status", dependencies=[Depends(verify_admin)])
-async def admin_status():
-    return {"client": "admin", "status": "ok"}
+class ProfesorCreate(BaseModel):
+    nume: str = Field(..., min_length=2, max_length=255)
+    email: EmailStr | None = None
+    password: str = Field(..., min_length=6, max_length=255)
+    
 
-@router.get("/metrics", dependencies=[Depends(verify_admin)])
-async def admin_metrics():
-    async with engine.connect() as conn:
-        r = await conn.execute(text("SELECT 1 as up"))
-    return {"db_up": r.one().up == 1}
+
+class ProfesorOut(BaseModel):
+    id: int
+    nume: str
+    email: EmailStr | None
+    
+
+
+@router.post("/profesori", response_model=ProfesorOut, status_code=status.HTTP_201_CREATED)
+async def add_profesor(
+    body: ProfesorCreate,
+    payload: dict = Depends(verify_jwt_token),  # token required
+):
+    """
+    Adaugă un nou profesor în baza de date.
+    Necesită un token JWT valid în antetul Authorization.
+    """
+    hashed_pw = pwd_context.hash(body.password)
+    insert_q = text("""
+        INSERT INTO profesori (Name, Email, Password)
+        VALUES (:nume, :email, :password)
+    """)
+
+    select_q = text("""
+        SELECT id, nume, email
+        FROM profesori
+        WHERE id = :id
+    """)
+
+    try:
+        async with engine.begin() as conn:
+            # Insert profesor
+            result = await conn.execute(
+                insert_q,
+                {
+                    "nume": body.nume,
+                    "email": body.email,
+                    "password": hashed_pw,
+                    
+                },
+            )
+            # MySQL last insert id
+            new_id = result.lastrowid or (
+                await conn.execute(text("SELECT LAST_INSERT_ID() AS id"))
+            ).mappings().first()["id"]
+
+            # Fetch and return created row
+            row = (
+                await conn.execute(select_q, {"id": new_id})
+            ).mappings().first()
+
+    except exec.IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Profesorul există deja sau încalcă o constrângere.",
+        )
+
+    if not row:
+        raise HTTPException(status_code=500, detail="Eșec la preluarea înregistrării create.")
+
+    return ProfesorOut(**row)
