@@ -18,3 +18,5 @@ pydantic-settings==2.3.4
 passlib[bcrypt]
 bcrypt<4.1
 pyjwt
+
+pydantic[email]

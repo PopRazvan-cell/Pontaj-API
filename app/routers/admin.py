@@ -31,7 +31,7 @@ async def admin_login(body: LoginRequest):
     -Returnează un token JWT și numele de utilizator
     """
     q = text("""
-        SELECT Password, Email, Name FROM profesorii WHERE Email = :u LIMIT 1;
+        SELECT Password, Email, Name FROM profesori WHERE Email = :u LIMIT 1;
     """)
 
     async with engine.connect() as conn:
@@ -94,7 +94,7 @@ async def get_all_admins(payload: dict = Depends(verify_jwt_token)):
     Necesită un token JWT valid în antetul Authorization.
     """
     q = text("""
-        SELECT Email, Name FROM profesorii
+        SELECT Email, Name FROM profesori
         ORDER BY Name;
     """)
 
@@ -118,9 +118,9 @@ class ProfesorCreate(BaseModel):
 
 
 class ProfesorOut(BaseModel):
-    id: int
-    nume: str
-    email: EmailStr | None
+    ID: int
+    Name: str
+    Email: EmailStr | None
     
 
 
@@ -140,9 +140,9 @@ async def add_profesor(
     """)
 
     select_q = text("""
-        SELECT id, nume, email
+        SELECT ID, Name, Email
         FROM profesori
-        WHERE id = :id
+        WHERE ID = :id
     """)
 
     try:
