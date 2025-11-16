@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import text
 from ..db import engine
 from ..core.config import settings
@@ -64,18 +65,20 @@ async def admin_login(body: LoginRequest):
         "expires_in": 3600
     }
 
-# --- TOKEN VERIFIER ---
-def verify_jwt_token(authorization: str = Header(...)):
-    """
-    Extract and verify the JWT token from the Authorization header.
-    Returns the decoded payload if valid.
-    """
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+http_bearer_scheme = HTTPBearer()
 
-    token = authorization.split(" ")[1]
+# --- TOKEN VERIFIER ---
+def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)):
+    """
+    Extract and verify the JWT token using the HTTPBearer scheme.
+    'creds.credentials' will contain the raw token string.
+    'creds.scheme' will be "Bearer".
+    """
+    # 1. Get the token directly from the 'creds' object
+    token = creds.credentials 
 
     try:
+        # 2. Decode the token. No need to check for "Bearer " or split the string.
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
