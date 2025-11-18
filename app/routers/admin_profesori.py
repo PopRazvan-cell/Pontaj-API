@@ -110,11 +110,12 @@ async def get_all_admins(payload: dict = Depends(verify_jwt_token)):
 
 verify_admin = make_bearer_verifier(settings.API_TOKEN_ADMIN)
 
-class ProfesorCreate(BaseModel):
+class Profesor(BaseModel):
     nume: str = Field(..., min_length=2, max_length=255)
     email: EmailStr | None = None
     password: str = Field(..., min_length=6, max_length=255)
-    
+
+
 
 
 class ProfesorOut(BaseModel):
@@ -122,11 +123,94 @@ class ProfesorOut(BaseModel):
     Name: str
     Email: EmailStr | None
     
+@router.put("/profesori/{profesor_id}", response_model=ProfesorOut)
+async def update_profesor(
+    profesor_id: int,
+    body: Profesor,
+    payload: dict = Depends(verify_jwt_token),
+):
+    """
+    Full update of a profesor.
+    If password is provided, it will be re-hashed and updated.
+    """
 
+    params = {
+        "id": profesor_id,
+        "nume": body.nume,
+        "email": body.email,
+        
+    }
+
+    set_parts = ["Name = :nume", "Email = :email"]
+
+    if body.password:
+        hashed_pw = pwd_context.hash(body.password)
+        params["password_hash"] = hashed_pw
+        set_parts.append("Password = :password_hash")
+
+    update_q = text(f"""
+        UPDATE profesori
+        SET {", ".join(set_parts)}
+        WHERE ID = :id
+    """)
+
+    select_q = text("""
+        SELECT ID, Name, Email
+        FROM profesori
+        WHERE ID = :id
+    """)
+
+    try:
+        async with engine.begin() as conn:
+            res = await conn.execute(update_q, params)
+            if res.rowcount == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Profesor negasit",
+                )
+
+            row = (await conn.execute(select_q, {"id": profesor_id})).mappings().first()
+    except exec.IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Update violates a unique constraint (probably email).",
+        )
+
+    if not row:
+        raise HTTPException(status_code=500, detail="Failed to retrieve updated record.")
+
+    return ProfesorOut(**row)
+
+@router.delete("/profesori/{profesor_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_profesor(
+    profesor_id: int,
+    payload: dict = Depends(verify_jwt_token),
+):
+    """
+    Permanently deletes a profesor by ID.
+    Returns 204 No Content on success.
+    """
+
+    delete_q = text("DELETE FROM profesori WHERE ID = :id")
+
+    try:
+        async with engine.begin() as conn:
+            res = await conn.execute(delete_q, {"id": profesor_id})
+            if res.rowcount == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Profesor not found",
+                )
+    except exec.IntegrityError:
+        # e.g. if there are foreign keys referencing this profesor
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Profesor cannot be deleted due to related records.",
+        )
 
 @router.post("/profesori", response_model=ProfesorOut, status_code=status.HTTP_201_CREATED)
 async def add_profesor(
-    body: ProfesorCreate,
+    body: Profesor,
     payload: dict = Depends(verify_jwt_token),  # token required
 ):
     """

@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 import asyncio
 
 from .db import lifespan, db_ping
-from .routers import frontend, admin, mobile
+from .routers import frontend, admin_profesori, mobile
 
 app = FastAPI(title="Prod API – multi-client", lifespan=lifespan)
 
@@ -21,5 +21,5 @@ async def readiness():
 
 # Montează routerele per client
 app.include_router(frontend.router)
-app.include_router(admin.router)
+app.include_router(admin_profesori.router)
 app.include_router(mobile.router)
