@@ -94,7 +94,7 @@ async def get_all_admins(payload: dict = Depends(verify_jwt_token)):
     Necesită un token JWT valid în antetul Authorization.
     """
     q = text("""
-        SELECT Email, Name FROM profesori
+        SELECT Email, Name, ID FROM profesori
         ORDER BY Name;
     """)
 
@@ -238,6 +238,7 @@ async def add_profesor(
                     "nume": body.nume,
                     "email": body.email,
                     "password": hashed_pw,
+                    
                     
                 },
             )
