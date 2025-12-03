@@ -9,7 +9,7 @@ from pydantic import BaseModel, EmailStr, Field
 import jwt
 import time
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["profesori"])
 
 # bcrypt password hashing/verification
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -3,7 +3,7 @@ import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import lifespan, db_ping
-from .routers import frontend, admin_profesori, mobile
+from .routers import frontend, admin_profesori, mobile, admin_elevi
 
 app = FastAPI(title="Prod API – multi-client", lifespan=lifespan)
 origins = [
@@ -36,3 +36,4 @@ async def readiness():
 app.include_router(frontend.router)
 app.include_router(admin_profesori.router)
 app.include_router(mobile.router)
+app.include_router(admin_elevi.router)
