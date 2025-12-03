@@ -178,7 +178,7 @@ async def add_elev(
     """)
 
     select_q = text("""
-        SELECT ID, Name, Email, CodMatricol, Activ
+        SELECT ID, Name, Email, CodMatricol, Activ, DataActivare
         FROM elevi
         WHERE ID = :id
     """)
