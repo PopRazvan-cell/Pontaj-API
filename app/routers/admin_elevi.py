@@ -68,7 +68,7 @@ class Elev(BaseModel):
     email: EmailStr | None = None
     codmatricol: str = Field(..., min_length=4, max_length=8)
     activ: int
-    dataactivare: str
+    
 
 class ElevOut(BaseModel):
     ID: int
