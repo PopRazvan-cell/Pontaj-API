@@ -115,23 +115,77 @@ class Profesor(BaseModel):
     email: EmailStr | None = None
     password: str = Field(..., min_length=6, max_length=255)
 
-
+class EditProfesor(BaseModel):
+    nume: str = Field(..., min_length=2, max_length=255)
+    email: EmailStr | None = None
 
 
 class ProfesorOut(BaseModel):
     ID: int
     Name: str
     Email: EmailStr | None
+
+class ProfesorPassword(BaseModel):
+    password: str = Field(..., min_length=6, max_length=255)    
     
+@router.put("/changepassword/{profesor_id}", response_model=ProfesorOut)
+async def update_profesor(
+    profesor_id: int,
+    body: ProfesorPassword,
+    payload: dict = Depends(verify_jwt_token),
+):
+    """
+    Reset the password of the admins.
+    """
+
+    params = {
+        "id": profesor_id,
+        "password": body.password
+    }
+
+    set_parts = ["Password = :password"]
+
+    update_q = text(f"""
+        UPDATE profesori
+        SET {", ".join(set_parts)}
+        WHERE ID = :id
+    """)
+
+    select_q = text("""
+        SELECT ID, Name, Email
+        FROM profesori
+        WHERE ID = :id
+    """)
+
+    try:
+        async with engine.begin() as conn:
+            res = await conn.execute(update_q, params)
+            if res.rowcount == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Profesor negasit",
+                )
+
+            row = (await conn.execute(select_q, {"id": profesor_id})).mappings().first()
+    except exec.IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Update violates password constraint.",
+        )
+
+    if not row:
+        raise HTTPException(status_code=500, detail="Failed to retrieve updated record.")
+
+    return ProfesorOut(**row)
+
 @router.put("/profesori/{profesor_id}", response_model=ProfesorOut)
 async def update_profesor(
     profesor_id: int,
-    body: Profesor,
+    body: EditProfesor,
     payload: dict = Depends(verify_jwt_token),
 ):
     """
     Full update of a profesor.
-    If password is provided, it will be re-hashed and updated.
     """
 
     params = {
@@ -142,11 +196,6 @@ async def update_profesor(
     }
 
     set_parts = ["Name = :nume", "Email = :email"]
-
-    if body.password:
-        hashed_pw = pwd_context.hash(body.password)
-        params["password_hash"] = hashed_pw
-        set_parts.append("Password = :password_hash")
 
     update_q = text(f"""
         UPDATE profesori
