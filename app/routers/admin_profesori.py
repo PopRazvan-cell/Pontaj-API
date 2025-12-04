@@ -6,6 +6,7 @@ from ..core.config import settings
 from ..core.security import make_bearer_verifier
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.exc import IntegrityError
 import jwt
 import time
 
@@ -126,7 +127,7 @@ class ProfesorOut(BaseModel):
     ID: int
     Name: str
     Email: EmailStr | None
-    admin: int
+    Admin: int
 
 class ProfesorPassword(BaseModel):
     password: str = Field(..., min_length=6, max_length=255)    
