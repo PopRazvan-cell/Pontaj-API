@@ -31,7 +31,7 @@ async def admin_login(body: LoginRequest):
     -Returnează un token JWT și numele de utilizator
     """
     q = text("""
-        SELECT Password, Email, Name FROM profesori WHERE Email = :u LIMIT 1;
+        SELECT Admin, Password, Email, Name FROM profesori WHERE Email = :u LIMIT 1;
     """)
 
     async with engine.connect() as conn:
@@ -94,7 +94,7 @@ async def get_all_admins(payload: dict = Depends(verify_jwt_token)):
     Necesită un token JWT valid în antetul Authorization.
     """
     q = text("""
-        SELECT Email, Name, ID FROM profesori
+        SELECT Email, Name, ID, Admin FROM profesori
         ORDER BY Name;
     """)
 
@@ -114,16 +114,19 @@ class Profesor(BaseModel):
     nume: str = Field(..., min_length=2, max_length=255)
     email: EmailStr | None = None
     password: str = Field(..., min_length=6, max_length=255)
+    admin: int
 
 class EditProfesor(BaseModel):
     nume: str = Field(..., min_length=2, max_length=255)
     email: EmailStr | None = None
+    admin: int
 
 
 class ProfesorOut(BaseModel):
     ID: int
     Name: str
     Email: EmailStr | None
+    admin: int
 
 class ProfesorPassword(BaseModel):
     password: str = Field(..., min_length=6, max_length=255)    
@@ -192,10 +195,11 @@ async def update_profesor(
         "id": profesor_id,
         "nume": body.nume,
         "email": body.email,
+        "admin": body.admin
         
     }
 
-    set_parts = ["Name = :nume", "Email = :email"]
+    set_parts = ["Name = :nume", "Email = :email", "Admin = :admin"]
 
     update_q = text(f"""
         UPDATE profesori
@@ -204,7 +208,7 @@ async def update_profesor(
     """)
 
     select_q = text("""
-        SELECT ID, Name, Email
+        SELECT ID, Name, Email, Admin
         FROM profesori
         WHERE ID = :id
     """)
@@ -268,8 +272,8 @@ async def add_profesor(
     """
     hashed_pw = pwd_context.hash(body.password)
     insert_q = text("""
-        INSERT INTO profesori (Name, Email, Password)
-        VALUES (:nume, :email, :password)
+        INSERT INTO profesori (Name, Email, Password, Admin)
+        VALUES (:nume, :email, :password, :admin)
     """)
 
     select_q = text("""
@@ -287,7 +291,7 @@ async def add_profesor(
                     "nume": body.nume,
                     "email": body.email,
                     "password": hashed_pw,
-                    
+                    "admin": body.admin
                     
                 },
             )
