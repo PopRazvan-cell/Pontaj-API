@@ -6,6 +6,7 @@ from ..core.config import settings
 from ..core.security import make_bearer_verifier
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
 import jwt
 import time
 
@@ -72,13 +73,11 @@ class Elev(BaseModel):
 
 class ElevOut(BaseModel):
     ID: int
-    nume: str = Field(..., min_length=2, max_length=255)
-    email: EmailStr | None = None
-    codmatricol: str = Field(..., min_length=4, max_length=8)
-    activ: int
-    dataactivare: str
-
-
+    Name: str = Field(..., min_length=2, max_length=255)
+    Email: EmailStr | None = None
+    CodMatricol: str = Field(..., min_length=4, max_length=8)
+    Activ: int
+    dataactivare: Optional[str] = Field(alias="DataActivare", default=None)
     
 
 @router.put("/elevi/{elev_id}", response_model=ElevOut)
@@ -145,7 +144,7 @@ async def delete_elevi(
     Returns 204 No Content on success.
     """
 
-    delete_q = text("DELETE FROM elev WHERE ID = :id")
+    delete_q = text("DELETE FROM elevi WHERE ID = :id")
 
     try:
         async with engine.begin() as conn:
