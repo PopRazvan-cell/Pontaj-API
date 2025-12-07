@@ -126,7 +126,7 @@ class ProfesorOut(BaseModel):
     ID: int
     Name: str
     Email: EmailStr | None
-    admin: int
+    Admin: int
 
 class ProfesorPassword(BaseModel):
     password: str = Field(..., min_length=6, max_length=255)    
