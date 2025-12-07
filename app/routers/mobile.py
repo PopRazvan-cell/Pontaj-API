@@ -8,6 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import time
 from sqlalchemy.exc import IntegrityError
 import jwt
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 from passlib.context import CryptContext
 router = APIRouter(prefix="/mobile", tags=["mobile"])
@@ -84,7 +85,7 @@ async def admin_enroll(body: Enrollment):
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     params = {
         "token": token,
-        "dataactivare": int(time.time()),
+        "dataactivare": datetime.now(),
         "activ": 1,
         "id": row["ID"]
 
