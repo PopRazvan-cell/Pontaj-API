@@ -6,6 +6,7 @@ from ..core.config import settings
 from ..core.security import make_bearer_verifier
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.exc import IntegrityError
 import jwt
 import time
 
