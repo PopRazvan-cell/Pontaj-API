@@ -116,7 +116,7 @@ async def admin_enroll(body: Enrollment):
 
     return {
         
-        "codmatricl": row["CodMatricol"],
+        "codmatricol": body.codmatricol,
         "access_token": token,
         "token_type": "bearer",
         "name": row["Name"],
