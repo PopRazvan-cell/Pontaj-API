@@ -144,3 +144,44 @@ def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+@router.get("/verifyToken")
+async def verifyToken(payload: dict = Depends(verify_jwt_token)):
+    """
+    Returnează daca token valabil si elevul activ.
+    """
+    payload: dict = Depends(verify_jwt_token)
+    codmatricol = payload["CodMatricol"]
+    creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)
+
+    q = text("""
+        SELECT Name, Activ  FROM elevi WHERE CodMatricol = :cm AND Token = :tk LIMIT 1;
+    """)
+
+    async with engine.connect() as conn:
+        res = await conn.execute(q,  {"cm": codmatricol, "tk": creds.credentials })
+        elevi = [dict(row._mapping) for row in res.fetchall()]
+
+    return {
+        "Activ": elevi[0]["Activ"],
+        "Name": elevi[0]["Name"]
+    }
+
+verify_elevi = make_bearer_verifier(settings.API_TOKEN_ADMIN)
+
+def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)):
+    """
+    Extrage și verifică tokenul JWT folosind schema HTTPBearer.
+    'creds.credentials' va conține șirul tokenului brut.
+    'creds.scheme' va fi "Bearer".
+    """
+    # 1. Get the token directly from the 'creds' object
+    token = creds.credentials 
+
+    try:
+        # 2. Decode the token. No need to check for "Bearer " or split the string.
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
