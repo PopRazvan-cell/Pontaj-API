@@ -36,8 +36,11 @@ async def admin_enroll(body: Enrollment):
     Inscriere in aplicatie cu ajutor codului matricol
     """
     q = text("""
-        SELECT ID, Token, Email, Name, Activ, FROM elevi WHERE CodMatricol = :u LIMIT 1;
-    """)
+    SELECT ID, Token, Email, Name, Activ
+    FROM elevi
+    WHERE CodMatricol = :u
+    LIMIT 1;
+""")
 
     async with engine.connect() as conn:
         res = await conn.execute(q, {"u": body.codmatricol})
