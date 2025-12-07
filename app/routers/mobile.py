@@ -149,7 +149,6 @@ async def verifyToken(payload: dict = Depends(verify_jwt_token)):
     """
     Returnează daca token valabil si elevul activ.
     """
-    payload: dict = Depends(verify_jwt_token)
     codmatricol = payload["CodMatricol"]
     creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)
 
