@@ -85,7 +85,9 @@ async def admin_enroll(body: Enrollment):
     params = {
         "token": token,
         "dataactivare": int(time.time()),
-        "activ": 1
+        "activ": 1,
+        "id": row["ID"]
+
         
     }
 
