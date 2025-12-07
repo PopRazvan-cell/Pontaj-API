@@ -76,7 +76,7 @@ async def admin_enroll(body: Enrollment):
 
     # Create a temporary JWT token (1 year)
     payload = {
-        "CodMatricol": row["CodMatricol"],
+        "CodMatricol": body.codmatricol,
         "iat": int(time.time()),
         "exp": int(time.time()) + 31536000,  # 1 year expiration
     }
