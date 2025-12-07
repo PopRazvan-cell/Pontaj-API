@@ -145,12 +145,12 @@ def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_s
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.get("/verifyToken")
-async def verifyToken(payload: dict = Depends(verify_jwt_token)):
+async def verifyToken(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)):
     """
     Returnează daca token valabil si elevul activ.
     """
     codmatricol = payload["CodMatricol"]
-    creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)
+   
 
     q = text("""
         SELECT Name, Activ  FROM elevi WHERE CodMatricol = :cm AND Token = :tk LIMIT 1;
