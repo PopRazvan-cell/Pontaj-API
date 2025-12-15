@@ -47,9 +47,7 @@ async def get_all_students(payload: dict = Depends(verify_jwt_token), name: str 
     Returnează toți utilizatorii admin cu informații complete (excluzând password_hash).
     Necesită un token JWT valid în antetul Authorization.
     """
-    q = text("""
-        SELECT Email, Name, ID, CodMatricol, Activ, DataActivare FROM elevi
-    """)
+    q = "SELECT Email, Name, ID, CodMatricol, Activ, DataActivare FROM elevi"
 
     params={}
 
