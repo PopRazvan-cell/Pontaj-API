@@ -42,15 +42,24 @@ def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_s
 
 # --- PROTECTED ROUTE ---
 @router.get("/elevi")
-async def get_all_admins(payload: dict = Depends(verify_jwt_token)):
+async def get_all_students(payload: dict = Depends(verify_jwt_token), name: str = None):
     """
     Returnează toți utilizatorii admin cu informații complete (excluzând password_hash).
     Necesită un token JWT valid în antetul Authorization.
     """
     q = text("""
         SELECT Email, Name, ID, CodMatricol, Activ, DataActivare FROM elevi
-        ORDER BY Name;
     """)
+
+    params={}
+
+    if name: 
+        q+=" WHERE Name ILIKE :name"
+        params["name"]=f"%{name}%"
+
+    q+=" ORDER BY Name;"
+
+
 
     async with engine.connect() as conn:
         res = await conn.execute(q)
