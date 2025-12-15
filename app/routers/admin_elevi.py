@@ -52,7 +52,7 @@ async def get_all_students(payload: dict = Depends(verify_jwt_token), name: str 
     params={}
 
     if name: 
-        query+=" WHERE Name ILIKE :name"
+        query+=" WHERE Name LIKE :name"
         params["name"]=f"%{name}%"
 
     query+=" ORDER BY Name;"
