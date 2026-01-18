@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy import text
 from ..db import engine
 from ..core.config import settings
@@ -7,6 +7,9 @@ from ..core.security import make_bearer_verifier
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import time
 from sqlalchemy.exc import IntegrityError
+import base64
+import io
+import qrcode
 import jwt
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
@@ -184,3 +187,133 @@ def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_s
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+
+
+@router.post("/qr", summary="Generate QR with short-lived JWT containing a DB value")
+async def generate_qr_with_db_value(
+    payload: dict = Depends(verify_jwt_token),
+    creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme),
+):
+    """
+    Uses the user's enroll token (Authorization: Bearer <token>) to fetch a DB value,
+    then generates a 10-second JWT and returns it as a QR code (base64 PNG).
+    """
+
+    user_token = creds.credentials  # the enroll token
+
+   
+    q = text("""
+        SELECT ID
+        FROM elevi
+        WHERE Token = :tk
+        LIMIT 1;
+    """)
+
+    async with engine.connect() as conn:
+        res = await conn.execute(q, {"tk": user_token})
+        row = res.mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=401, detail="Invalid token or user not found")
+
+    db_value = row["ID"]
+
+    # ✅ Create short-lived JWT (10 seconds)
+    now = int(time.time())
+    qr_payload = {
+        "value": db_value,
+        "iat": now,
+        "exp": now + 30,
+    }
+
+    qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+    # ✅ Create QR image from token
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_token)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    png_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    return {
+        "expires_in": 30,
+        "token": qr_token,
+        "qr_png_base64": png_b64,
+        "exp": qr_payload["exp"],
+    }
+
+@router.post(
+    "/qr_image",
+    summary="Generate QR with short-lived JWT containing a DB value",
+    response_class=Response,
+)
+async def generate_qr_with_db_value(
+    payload: dict = Depends(verify_jwt_token),
+    creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme),
+):
+    """
+    Uses the user's enroll token (Authorization: Bearer <token>) to fetch a DB value,
+    then generates a 10-second JWT and returns it as a PNG QR code.
+    """
+
+    user_token = creds.credentials  # enroll JWT
+
+    # Fetch value from DB using enroll token
+    q = text("""
+        SELECT ID
+        FROM elevi
+        WHERE Token = :tk
+        LIMIT 1;
+    """)
+
+    async with engine.connect() as conn:
+        res = await conn.execute(q, {"tk": user_token})
+        row = res.mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=401, detail="Invalid token or user not found")
+
+    db_value = row["ID"]
+
+    # Create short-lived JWT (10 seconds)
+    now = int(time.time())
+    qr_payload = {
+        "value": db_value,
+        "iat": now,
+        "exp": now + 30,
+    }
+
+    qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+    # Generate QR image
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_token)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    # Convert to PNG bytes
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    return Response(
+        content=png_bytes,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "no-store",
+        },
+    )
