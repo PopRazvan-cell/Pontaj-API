@@ -7,7 +7,7 @@ from .routers import frontend, admin_profesori, mobile, admin_elevi
 
 app = FastAPI(title="Prod API – multi-client", lifespan=lifespan)
 origins = [
-    "https://pontaj.binarysquad.club"
+    "https://pontaj.binarysquad.club",
     "http://localhost:3000",  # React dev
     "http://127.0.0.1:3000",
     "https://admin.pontaj.binarysquad.club",

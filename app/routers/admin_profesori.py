@@ -278,7 +278,7 @@ async def add_profesor(
     """)
 
     select_q = text("""
-        SELECT ID, Name, Email
+        SELECT ID, Name, Email, Admin
         FROM profesori
         WHERE ID = :id
     """)
