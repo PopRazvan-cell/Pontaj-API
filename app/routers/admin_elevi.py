@@ -228,9 +228,9 @@ async def add_elev(
 
 
 @router.get("/elevi_enrolled")
-async def get_all_students(payload: dict = Depends(verify_jwt_token)):
+async def get_all_enrolled_students(payload: dict = Depends(verify_jwt_token)):
     """
-    Returnează toți utilizatorii admin cu informații complete (excluzând password_hash).
+    Returnează toți elevii enrolled cu informații complete (excluzând password_hash).
     Necesită un token JWT valid în antetul Authorization.
     """
     query = "SELECT Email, Name, ID, CodMatricol, Activ, DataActivare FROM elevi"
