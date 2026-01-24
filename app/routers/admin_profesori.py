@@ -332,3 +332,4 @@ async def get_professors():
         professors = res.mappings().all()
 
     return professors
+

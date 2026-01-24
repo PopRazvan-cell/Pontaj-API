@@ -224,3 +224,28 @@ async def add_elev(
         raise HTTPException(status_code=500, detail="Eșec la preluarea înregistrării create.")
 
     return ElevOut(**row)
+
+
+
+@router.get("/elevi_enrolled")
+async def get_all_students(payload: dict = Depends(verify_jwt_token)):
+    """
+    Returnează toți utilizatorii admin cu informații complete (excluzând password_hash).
+    Necesită un token JWT valid în antetul Authorization.
+    """
+    query = "SELECT Email, Name, ID, CodMatricol, Activ, DataActivare FROM elevi"
+    query+=" WHERE Token IS NOT NULL"
+    query+=" ORDER BY Name;"
+
+
+    q=text(query)
+
+    async with engine.connect() as conn:
+        res = await conn.execute(q, params)
+        elevi = [dict(row._mapping) for row in res.fetchall()]
+
+    return {
+        "requested_by": payload["sub"],
+        "count": len(elevi),
+        "elevi": elevi
+    }
