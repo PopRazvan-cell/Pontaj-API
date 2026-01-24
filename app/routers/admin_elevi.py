@@ -241,7 +241,7 @@ async def get_all_enrolled_students(payload: dict = Depends(verify_jwt_token)):
     q=text(query)
 
     async with engine.connect() as conn:
-        res = await conn.execute(q, params)
+        res = await conn.execute(q)
         elevi = [dict(row._mapping) for row in res.fetchall()]
 
     return {
