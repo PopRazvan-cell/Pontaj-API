@@ -66,8 +66,28 @@ async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizati
     if token_exists:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Token already used"
+            detail="Cod QR deja folosit"
     )
+
+     # 2. Check if elev scanned in the last hour
+    scan_check_q = text("""
+        SELECT scan_time
+        FROM scanari
+        WHERE id_elev = :id
+        ORDER BY scan_time DESC
+        LIMIT 1;
+    """)
+    async with engine.connect() as conn:
+        scan_res = await conn.execute(scan_check_q, {"id": id})
+        last_scan = scan_res.first()
+
+    if last_scan:
+        last_scan_time = last_scan.scan_time
+        if (datetime.now() - last_scan_time).total_seconds() < 3600:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Elevul a fost scanat în ultima oră"
+            )
 
     q = text("""
         SELECT Name, Activ  FROM elevi WHERE ID = :id;
