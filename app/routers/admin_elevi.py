@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Header
+from datetime import datetime
+from fastapi import APIRouter, HTTPException, Query, status, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import text
 from ..db import engine
@@ -226,6 +227,49 @@ async def add_elev(
     return ElevOut(**row)
 
 
+@router.get("/scans_by_date")
+async def get_scans(
+    start: datetime = Query(..., description="Start datetime (ISO 8601)"),
+    end: datetime = Query(..., description="End datetime (ISO 8601)")
+):
+    """
+    Returnează toate scanările dintr-o perioadă de timp.
+    """
+
+    if start >= end:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Start date must be before end date"
+        )
+
+    q = text("""
+        SELECT 
+            s.id_elev,
+            s.scan_time,
+            s.token,
+            e.name
+        FROM scanari s
+        JOIN elevi e ON e.id = s.id_elev
+        WHERE s.scan_time BETWEEN :start AND :end
+        ORDER BY s.scan_time ASC;
+    """)
+
+    async with engine.connect() as conn:
+        res = await conn.execute(
+            q,
+            {
+                "start": start,
+                "end": end
+            }
+        )
+        scans = [dict(row._mapping) for row in res.fetchall()]
+
+    return {
+        "count": len(scans),
+        "start": start,
+        "end": end,
+        "data": scans
+    }
 
 @router.get("/elevi_enrolled")
 async def get_all_enrolled_students(payload: dict = Depends(verify_jwt_token)):
