@@ -74,7 +74,7 @@ async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizati
     """)
 
     async with engine.connect() as conn:
-        res = await conn.execute(q,  {"id": ID})
+        res = await conn.execute(q,  {"id": id})
         elevi = [dict(row._mapping) for row in res.fetchall()]
     
 # 3. Store token as used
