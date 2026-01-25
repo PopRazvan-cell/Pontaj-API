@@ -59,8 +59,9 @@ async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizati
     token_check_q = text("""
         SELECT 1 FROM scanari WHERE Token = :token;
     """)
-    token_res = await conn.execute(token_check_q, {"token": token})
-    token_exists = token_res.first()
+    async with engine.connect() as conn:
+        token_res = await conn.execute(token_check_q, {"token": token})
+        token_exists = token_res.first()
 
     if token_exists:
         raise HTTPException(
