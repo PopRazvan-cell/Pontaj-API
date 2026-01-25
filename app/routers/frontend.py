@@ -53,7 +53,7 @@ async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizati
     Returnează daca token valabil si elevul activ.
     """
     token = creds.credentials
-    ID = payload["value"]
+    id = payload["value"]
    
     # 1. Check if token already exists
     token_check_q = text("""
