@@ -79,10 +79,10 @@ async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizati
     
 # 3. Store token as used
     insert_token_q = text("""
-        INSERT INTO scanari (id_elev, scan_time, token) VALUES (:id, :datetime.now(), :token);
+        INSERT INTO scanari (id_elev, scan_time, token) VALUES (:id, :scan_time, :token);
     """)
     async with engine.connect() as conn:
-        await conn.execute(insert_token_q, {"token": token})
+        await conn.execute(insert_token_q, {"id": id, "scan_time":datetime.now(),  "token": token})
         await conn.commit()
 
 
