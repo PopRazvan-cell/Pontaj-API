@@ -47,7 +47,7 @@ def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_s
         raise HTTPException(status_code=401, detail="Invalid token")
     
 
-@router.get("/scan")
+@router.post("/scan")
 async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)):
     """
     Returnează daca token valabil si elevul activ.
