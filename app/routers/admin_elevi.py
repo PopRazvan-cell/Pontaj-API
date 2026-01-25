@@ -228,7 +228,7 @@ async def add_elev(
 
 
 @router.get("/scans_by_date")
-async def get_scans(
+async def get_scans(payload: dict = Depends(verify_jwt_token),
     start: datetime = Query(..., description="Start datetime (ISO 8601)"),
     end: datetime = Query(..., description="End datetime (ISO 8601)")
 ):

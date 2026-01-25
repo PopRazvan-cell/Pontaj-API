@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import text
 from ..db import engine
 from ..core.config import settings
@@ -146,6 +146,50 @@ def verify_jwt_token(creds: HTTPAuthorizationCredentials = Depends(http_bearer_s
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+@router.get("/scans")
+async def get_scans(payload: dict = Depends(verify_jwt_token),
+    start: datetime = Query(..., description="Start datetime (ISO 8601)"),
+    end: datetime = Query(..., description="End datetime (ISO 8601)")
+):
+    """
+    Returnează toate scanările dintr-o perioadă de timp.
+    """
+    codmatricol = payload["CodMatricol"]
+    if start >= end:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Start date must be before end date"
+        )
+
+    q = text("""
+        SELECT 
+            s.id_elev,
+            s.scan_time,
+            s.token,
+            e.name
+        FROM scanari s
+        JOIN elevi e ON e.id = s.id_elev
+        WHERE e.CodMatricol=:codmatricol s.scan_time BETWEEN :start AND :end
+        ORDER BY s.scan_time ASC;
+    """)
+
+    async with engine.connect() as conn:
+        res = await conn.execute(
+            q,
+            {
+                "start": start,
+                "end": end
+            }
+        )
+        scans = [dict(row._mapping) for row in res.fetchall()]
+
+    return {
+        "count": len(scans),
+        "start": start,
+        "end": end,
+        "data": scans
+    }
 
 @router.get("/verifyToken")
 async def verifyToken(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme)):
