@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from sqlalchemy import text
@@ -52,8 +52,21 @@ async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizati
     """
     Returnează daca token valabil si elevul activ.
     """
+    token = creds.credentials
     ID = payload["value"]
    
+    # 1. Check if token already exists
+    token_check_q = text("""
+        SELECT 1 FROM scanari WHERE Token = :token;
+    """)
+    token_res = await conn.execute(token_check_q, {"token": token})
+    token_exists = token_res.first()
+
+    if token_exists:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Token already used"
+    )
 
     q = text("""
         SELECT Name, Activ  FROM elevi WHERE ID = :id;
@@ -62,6 +75,14 @@ async def scan(payload: dict = Depends(verify_jwt_token), creds: HTTPAuthorizati
     async with engine.connect() as conn:
         res = await conn.execute(q,  {"id": ID})
         elevi = [dict(row._mapping) for row in res.fetchall()]
+    
+# 3. Store token as used
+    insert_token_q = text("""
+        INSERT INTO scanari (id_elev, scan_time, token) VALUES (:id, :datetime.now(), :token);
+    """)
+    await conn.execute(insert_token_q, {"token": token})
+    await conn.commit()
+
 
     return {
         "Activ": elevi[0]["Activ"],
