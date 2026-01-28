@@ -316,20 +316,3 @@ async def add_profesor(
         raise HTTPException(status_code=500, detail="Eșec la preluarea înregistrării create.")
 
     return ProfesorOut(**row)
-
-
-@router.get("/enrolled_professors")
-async def get_professors():
-    q = text("""
-        SELECT ID, Name
-        FROM profesori
-        WHERE Activ = 1
-        ORDER BY Name;
-    """)
-
-    async with engine.connect() as conn:
-        res = await conn.execute(q)
-        professors = res.mappings().all()
-
-    return professors
-
