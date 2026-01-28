@@ -363,7 +363,7 @@ async def generate_qr_with_db_value(
     )
 
 @router.get("/enrolled_student_scans")
-async def get_scans(
+async def get_scanari(
     payload: dict = Depends(verify_jwt_token),
     start: datetime = Query(..., description="Start datetime (ISO 8601)"),
     end: datetime = Query(..., description="End datetime (ISO 8601)")
