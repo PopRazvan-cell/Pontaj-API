@@ -361,3 +361,53 @@ async def generate_qr_with_db_value(
             "Cache-Control": "no-store",
         },
     )
+
+@router.get("/enrolled_student_scans")
+async def get_scans(
+    payload: dict = Depends(verify_jwt_token),
+    start: datetime = Query(..., description="Start datetime (ISO 8601)"),
+    end: datetime = Query(..., description="End datetime (ISO 8601)")
+):
+    """
+    Returnează scanările elevului autentificat într-o perioadă de timp.
+    """
+
+    if start >= end:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Start date must be before end date"
+        )
+
+    # student identity comes ONLY from the JWT
+    id_elev = payload["id_elev"]
+
+    q = text("""
+        SELECT 
+            s.scan_time,
+            s.token,
+            e.name
+        FROM scanari s
+        JOIN elevi e ON e.id = s.id_elev
+        WHERE s.id_elev = :id_elev
+          AND s.scan_time BETWEEN :start AND :end
+        ORDER BY s.scan_time ASC;
+    """)
+
+    async with engine.connect() as conn:
+        res = await conn.execute(
+            q,
+            {
+                "id_elev": id_elev,
+                "start": start,
+                "end": end
+            }
+        )
+        scans = [dict(row._mapping) for row in res.fetchall()]
+
+    return {
+        "count": len(scans),
+        "start": start,
+        "end": end,
+        "data": scans
+    }
+
