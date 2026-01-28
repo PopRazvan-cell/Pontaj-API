@@ -365,6 +365,7 @@ async def generate_qr_with_db_value(
 @router.get("/enrolled_student_scans")
 async def get_scanari(
     payload: dict = Depends(verify_jwt_token),
+    creds: HTTPAuthorizationCredentials = Depends(http_bearer_scheme),
     start: datetime = Query(..., description="Start datetime (ISO 8601)"),
     end: datetime = Query(..., description="End datetime (ISO 8601)")
 ):
@@ -379,7 +380,7 @@ async def get_scanari(
         )
 
     # student identity comes ONLY from the JWT
-    id_elev = payload["id_elev"]
+    user_token = creds.credentials  # enroll JWT
 
     q = text("""
         SELECT 
@@ -388,7 +389,7 @@ async def get_scanari(
             e.name
         FROM scanari s
         JOIN elevi e ON e.id = s.id_elev
-        WHERE s.id_elev = :id_elev
+        WHERE s.token = :user_token
           AND s.scan_time BETWEEN :start AND :end
         ORDER BY s.scan_time ASC;
     """)
@@ -397,7 +398,7 @@ async def get_scanari(
         res = await conn.execute(
             q,
             {
-                "id_elev": id_elev,
+                "user_token": user_token,
                 "start": start,
                 "end": end
             }
