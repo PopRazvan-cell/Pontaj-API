@@ -389,7 +389,7 @@ async def get_scanari(
             e.name
         FROM scanari s
         JOIN elevi e ON e.id = s.id_elev
-        WHERE s.token = :user_token
+        WHERE e.token = :user_token
           AND s.scan_time BETWEEN :start AND :end
         ORDER BY s.scan_time ASC;
     """)
