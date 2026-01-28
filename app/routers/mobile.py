@@ -385,7 +385,7 @@ async def get_scanari(
     q = text("""
         SELECT 
             s.scan_time,
-            s.token,
+            
             e.name
         FROM scanari s
         JOIN elevi e ON e.id = s.id_elev
